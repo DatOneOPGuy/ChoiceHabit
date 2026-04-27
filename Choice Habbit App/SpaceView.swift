@@ -1,33 +1,23 @@
-//
-//  SpaceView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 25.04.26.
-//
-
 import SwiftUI
 
-// The 4 phases of box breathing
 enum BreathPhase: CaseIterable {
-    case inhale, holdIn, exhale, holdOut
+    case breatheIn, hold, breatheOut
 
     var label: String {
         switch self {
-        case .inhale:  return "Breathe In"
-        case .holdIn:  return "Hold"
-        case .exhale:  return "Breathe Out"
-        case .holdOut: return "Hold"
+        case .breatheIn:  return "Breathe in"
+        case .hold:       return "Hold"
+        case .breatheOut: return "Breathe out"
         }
     }
 
-    var duration: Double { 4.0 }
+    var duration: Int { 4 }
 
-    var circleScale: CGFloat {
+    var ringScale: CGFloat {
         switch self {
-        case .inhale:  return 1.0
-        case .holdIn:  return 1.0
-        case .exhale:  return 0.4
-        case .holdOut: return 0.4
+        case .breatheIn:  return 1.0
+        case .hold:       return 1.0
+        case .breatheOut: return 0.85
         }
     }
 }
@@ -37,12 +27,16 @@ struct SpaceView: View {
     var wheelID: UUID? = nil
     let onComplete: () -> Void
 
-    @State private var phaseIndex: Int = 0
-    @State private var circleScale: CGFloat = 0.4
-    @State private var opacity: Double = 0
-    @State private var secondsLeft: Int = 4
-    @State private var timer: Timer? = nil
-    @State private var navigateToWheel: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
+
+    @State private var phaseIndex = 0
+    @State private var ringScale: CGFloat = 0.85
+    @State private var ringOpacity: Double = 0.7
+    @State private var fadeIn: Double = 0
+    @State private var secondsLeft = 4
+    @State private var timer: Timer?
+    @State private var navigateToWheel = false
 
     private var currentPhase: BreathPhase {
         BreathPhase.allCases[phaseIndex]
@@ -50,148 +44,193 @@ struct SpaceView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.07, green: 0.07, blue: 0.12)
-                .ignoresSafeArea()
+            t.bg.ignoresSafeArea()
 
-            VStack(spacing: 40) {
+            VStack(spacing: 0) {
+                // Skip button
+                HStack {
+                    Spacer()
+                    Button { finish() } label: {
+                        Text("Skip")
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(2.0)
+                            .textCase(.uppercase)
+                            .foregroundStyle(t.inkMute)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
 
-                Text("Take a moment")
-                    .font(.headline)
-                    .foregroundColor(.white.opacity(0.5))
-                    .opacity(opacity)
+                // Header
+                VStack(spacing: 12) {
+                    Eyebrow(text: "BEFORE YOU CHOOSE", color: t.inkMute)
+
+                    (Text("One breath.\n")
+                        .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        .tracking(-0.8)
+                        .foregroundStyle(t.ink)
+                    + Text("Then decide.")
+                        .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        .tracking(-0.8)
+                        .foregroundStyle(t.accent))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                }
+                .padding(.top, 30)
+                .padding(.horizontal, 32)
 
                 Spacer()
 
+                // Breathing rings
                 ZStack {
+                    // Subtle radial glow
                     Circle()
-                        .stroke(Color.teal.opacity(0.15), lineWidth: 2)
+                        .fill(
+                            RadialGradient(
+                                colors: [t.accent.opacity(0.08), .clear],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 140
+                            )
+                        )
+                        .frame(width: 280, height: 280)
+
+                    // Static outer ring
+                    Circle()
+                        .stroke(t.line, lineWidth: 1)
                         .frame(width: 260, height: 260)
+                        .opacity(0.6)
 
-                    Circle()
-                        .stroke(Color.teal.opacity(0.3), lineWidth: 1.5)
-                        .frame(width: 220, height: 220)
-                        .scaleEffect(circleScale)
-
+                    // Animated breathing ring
                     Circle()
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    Color.teal.opacity(0.6),
-                                    Color.teal.opacity(0.2)
+                                    t.accentSoft.opacity(0.4),
+                                    t.accent.opacity(0.2),
+                                    .clear,
                                 ],
                                 center: .center,
-                                startRadius: 10,
-                                endRadius: 100
+                                startRadius: 0,
+                                endRadius: 110
                             )
                         )
-                        .frame(width: 200, height: 200)
-                        .scaleEffect(circleScale)
+                        .overlay(
+                            Circle().stroke(t.accent, lineWidth: 1.5)
+                        )
+                        .frame(width: 220, height: 220)
+                        .scaleEffect(ringScale)
+                        .opacity(ringOpacity)
 
-                    VStack(spacing: 8) {
+                    // Phase label + countdown
+                    VStack(spacing: 6) {
                         Text(currentPhase.label)
-                            .font(.title2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
+                            .font(.system(size: 18, weight: .medium))
+                            .tracking(-0.2)
+                            .foregroundStyle(t.ink)
 
                         Text("\(secondsLeft)")
-                            .font(.system(size: 42, weight: .thin, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
-                            .monospacedDigit()
+                            .font(.system(size: 36, weight: .thin, design: .monospaced))
+                            .foregroundStyle(t.accent)
                     }
                 }
-                .opacity(opacity)
+                .frame(height: 300)
+
+                // Progress dots
+                HStack(spacing: 8) {
+                    ForEach(0..<3) { idx in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(idx == phaseIndex ? t.accent : t.line)
+                            .frame(
+                                width: idx == phaseIndex ? 24 : 6,
+                                height: 6
+                            )
+                            .animation(
+                                .easeInOut(duration: 0.3), value: phaseIndex
+                            )
+                    }
+                }
+                .padding(.top, 12)
 
                 Spacer()
 
-                HStack(spacing: 12) {
-                    ForEach(0..<4) { index in
-                        Circle()
-                            .fill(index == phaseIndex ? Color.teal : Color.white.opacity(0.2))
-                            .frame(width: 8, height: 8)
-                            .animation(.easeInOut(duration: 0.3), value: phaseIndex)
-                    }
-                }
-                .opacity(opacity)
+                // Encouragement
+                Text("The urge will still be here in 12 seconds.\nSo will your power to choose.")
+                    .font(.system(size: 13))
+                    .italic()
+                    .foregroundStyle(t.inkSoft)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 36)
 
-                HStack(spacing: 0) {
-                    ForEach(Array(BreathPhase.allCases.enumerated()), id: \.offset) { index, phase in
-                        Text(phase.label)
-                            .font(.caption2)
-                            .foregroundColor(
-                                index == phaseIndex
-                                ? .teal
-                                : .white.opacity(0.25)
-                            )
-                            .frame(maxWidth: .infinity)
-                            .animation(.easeInOut(duration: 0.3), value: phaseIndex)
-                    }
+                // CTA button
+                Button { finish() } label: {
+                    Text("I'm ready to choose")
+                        .font(.system(size: 15, weight: .semibold))
+                        .tracking(-0.2)
+                        .frame(maxWidth: .infinity)
+                        .padding(16)
+                        .background(t.accent)
+                        .foregroundStyle(t.accentInk)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .opacity(opacity)
-                .padding(.bottom, 40)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
             }
-            .padding()
+            .opacity(fadeIn)
         }
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $navigateToWheel) {
             if let wheelID {
                 WheelSpinnerView(wheelID: wheelID)
             }
         }
-        .onAppear {
-            startBreathing()
-        }
-        .onDisappear {
-            timer?.invalidate()
+        .onAppear { startBreathing() }
+        .onDisappear { timer?.invalidate() }
+    }
+
+    private func finish() {
+        timer?.invalidate()
+        if wheelID != nil {
+            navigateToWheel = true
+        } else {
+            onComplete()
         }
     }
 
-    func startBreathing() {
-        withAnimation(.easeIn(duration: 0.8)) {
-            opacity = 1
-        }
-
-        animateToCurrentPhase()
-
+    private func startBreathing() {
+        withAnimation(.easeIn(duration: 0.8)) { fadeIn = 1 }
+        animateToPhase()
         secondsLeft = 4
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            tickTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            tick()
         }
     }
 
-    func tickTimer() {
+    private func tick() {
         if secondsLeft > 1 {
             secondsLeft -= 1
         } else {
-            let nextIndex = phaseIndex + 1
-
-            if nextIndex >= BreathPhase.allCases.count {
+            let next = phaseIndex + 1
+            if next >= BreathPhase.allCases.count {
                 timer?.invalidate()
-                if wheelID != nil {
-                    navigateToWheel = true
-                } else {
-                    onComplete()
-                }
+                finish()
             } else {
-                phaseIndex = nextIndex
+                phaseIndex = next
                 secondsLeft = 4
-                animateToCurrentPhase()
+                animateToPhase()
             }
         }
     }
 
-    func animateToCurrentPhase() {
+    private func animateToPhase() {
         let phase = BreathPhase.allCases[phaseIndex]
-
-        let animDuration: Double = {
-            switch phase {
-            case .inhale:  return 4.0
-            case .exhale:  return 4.0
-            case .holdIn, .holdOut: return 0.3
-            }
-        }()
-
-        withAnimation(.easeInOut(duration: animDuration)) {
-            circleScale = phase.circleScale
+        let dur: Double = phase == .hold ? 0.3 : 4.0
+        withAnimation(.easeInOut(duration: dur)) {
+            ringScale = phase.ringScale
+            ringOpacity = phase == .hold ? 1.0 : 0.7
         }
     }
 }

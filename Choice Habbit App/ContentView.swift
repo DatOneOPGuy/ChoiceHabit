@@ -7,33 +7,42 @@
 
 import SwiftUI
 
+// MARK: - Content View (Tab Bar)
+
 struct ContentView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
         TabView {
-            TriggerListView()
-                .tabItem { Label("Spin", systemImage: "arrow.triangle.2.circlepath") }
+            NavigationStack {
+                TriggerListView()
+            }
+            .tabItem { Label("Spin", systemImage: "arrow.triangle.2.circlepath") }
 
-            SuccessLogView()
-                .tabItem { Label("Log", systemImage: "chart.bar") }
+            NavigationStack {
+                SuccessLogView()
+            }
+            .tabItem { Label("Log", systemImage: "chart.bar") }
 
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
+            NavigationStack {
+                SettingsView()
+            }
+            .tabItem { Label("Settings", systemImage: "gearshape") }
         }
+        .tint(t.accent)
     }
 }
-
-// MARK: - Slice Colors
-
-private let sliceColors: [Color] = [
-    .red, .blue, .green, .orange, .purple, .pink, .teal, .indigo, .mint, .brown
-]
 
 // MARK: - Wheel Spinner View
 
 struct WheelSpinnerView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    private var t: Tide { .resolve(colorScheme) }
+
     let wheelID: UUID
     var trigger: String = ""
     var oldHabit: String = ""
@@ -64,51 +73,42 @@ struct WheelSpinnerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text(currentWheel?.name ?? "Spin the Wheel!")
-                .font(.largeTitle.bold())
-                .animation(.easeInOut, value: currentWheelID)
+        VStack(spacing: 0) {
+            // Top bar
+            topBar
 
-            ZStack(alignment: .top) {
-                SpinWheelView(options: currentOptions)
-                    .frame(width: 300, height: 300)
-                    .rotationEffect(.radians(rotation))
-                    .animation(
-                        animateRotation
-                            ? .timingCurve(0.12, 0.7, 0.2, 1.0, duration: 4.0)
-                            : nil,
-                        value: rotation
-                    )
+            // Header area
+            headerSection
 
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.title)
-                    .foregroundStyle(.black)
-                    .offset(y: -5)
-            }
-            .onTapGesture {
-                spin()
+            Spacer(minLength: 12)
+
+            // Wheel
+            wheelSection
+
+            // Hint
+            if result == nil {
+                Text("Tap the wheel to spin")
+                    .font(.system(size: 13))
+                    .foregroundStyle(t.inkMute)
+                    .padding(.top, 8)
             }
 
+            // Result
             if let result {
                 Text(result)
                     .font(.title2.bold())
-                    .foregroundStyle(isFinalResult ? .teal : .primary)
+                    .foregroundStyle(t.accent)
                     .transition(.scale.combined(with: .opacity))
+                    .padding(.top, 12)
             }
 
             Spacer()
+
+            // Footer card
+            footerCard
         }
-        .padding()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingEditor = true
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                }
-                .disabled(isSpinning)
-            }
-        }
+        .background(t.bg.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showingEditor, onDismiss: {
             appData.persistWheels()
         }) {
@@ -122,6 +122,130 @@ struct WheelSpinnerView: View {
             )
         }
     }
+
+    // MARK: - Top Bar
+
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(t.ink)
+            }
+
+            Spacer()
+
+            Button { showingEditor = true } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(t.ink)
+            }
+            .disabled(isSpinning)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Header
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if !trigger.isEmpty {
+                Eyebrow(
+                    text: "\(trigger) \u{00B7} INSTEAD OF \(oldHabit)",
+                    color: t.inkMute
+                )
+            }
+
+            TideHeadline(
+                text: currentWheel?.name ?? "Spin the Wheel!",
+                color: t.ink
+            )
+            .animation(.easeInOut, value: currentWheelID)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Wheel
+
+    private var wheelSection: some View {
+        ZStack(alignment: .top) {
+            // Halo
+            Circle()
+                .fill(t.surfaceAlt.opacity(0.5))
+                .frame(width: 280, height: 280)
+
+            // Wheel
+            SpinWheelView(options: currentOptions)
+                .frame(width: 260, height: 260)
+                .rotationEffect(.radians(rotation))
+                .animation(
+                    animateRotation
+                        ? .timingCurve(0.12, 0.7, 0.2, 1.0, duration: 4.0)
+                        : nil,
+                    value: rotation
+                )
+                .shadow(
+                    color: colorScheme == .dark
+                        ? Color(red: 0, green: 0, blue: 0, opacity: 0.4)
+                        : Color(red: 15/255, green: 42/255, blue: 46/255, opacity: 0.12),
+                    radius: 12, x: 0, y: 4
+                )
+
+            // Pointer
+            Image(systemName: "arrowtriangle.down.fill")
+                .font(.title2)
+                .foregroundStyle(t.ink)
+                .offset(y: -5)
+        }
+        .frame(width: 280, height: 290)
+        .onTapGesture {
+            spin()
+        }
+    }
+
+    // MARK: - Footer Card
+
+    private var footerCard: some View {
+        HStack(spacing: 14) {
+            // Accent circle with checkmark
+            ZStack {
+                Circle()
+                    .fill(t.accent)
+                    .frame(width: 32, height: 32)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Eyebrow(
+                    text: "\(currentOptions.count) PATHS \u{00B7} WEIGHTED BY WHAT WORKS",
+                    color: t.inkMute
+                )
+                Text("Let the wheel decide for you.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(t.inkSoft)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(t.surfaceAlt)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(t.line, lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+    }
+
+    // MARK: - Spin Logic
 
     private func spin() {
         guard !isSpinning else { return }
@@ -209,7 +333,10 @@ struct WheelSpinnerView: View {
 
 struct WeightEditorView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    private var t: Tide { .resolve(colorScheme) }
+
     let wheelID: UUID
 
     private var wheelIndex: Int? {
@@ -224,7 +351,7 @@ struct WeightEditorView: View {
                     ForEach(Array(appData.wheels[index].options.enumerated()), id: \.element.id) { optIndex, option in
                         HStack {
                             Circle()
-                                .fill(sliceColors[optIndex % sliceColors.count])
+                                .fill(t.slices[optIndex % t.slices.count])
                                 .frame(width: 12, height: 12)
 
                             Text(option.label)
@@ -298,6 +425,9 @@ struct TappableSlider: View {
 // MARK: - Spin Wheel Drawing
 
 struct SpinWheelView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
+
     let options: [WheelOption]
 
     private var totalWeight: Double {
@@ -316,7 +446,7 @@ struct SpinWheelView: View {
                     let sweep = sliceAngle(for: option)
                     let drawStart = Angle.radians(start - .pi / 2)
                     let drawEnd = Angle.radians(start + sweep - .pi / 2)
-                    let color = sliceColors[index % sliceColors.count]
+                    let color = t.slices[index % t.slices.count]
 
                     Path { path in
                         path.move(to: center)
@@ -338,15 +468,15 @@ struct SpinWheelView: View {
                         )
                         path.closeSubpath()
                     }
-                    .stroke(.white, lineWidth: 2)
+                    .stroke(t.surface, lineWidth: 1.5)
 
                     let mid = start + sweep / 2 - .pi / 2
                     let labelRadius = radius * 0.65
 
                     Text(option.label)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 1, x: 1, y: 1)
+                        .shadow(color: .black.opacity(0.4), radius: 1, x: 0.5, y: 0.5)
                         .rotationEffect(.radians(mid))
                         .position(
                             x: center.x + labelRadius * cos(mid),
@@ -354,14 +484,21 @@ struct SpinWheelView: View {
                         )
                 }
 
+                // Center hub
                 Circle()
-                    .fill(.white)
-                    .frame(width: size * 0.15, height: size * 0.15)
+                    .fill(t.surface)
+                    .frame(width: 44, height: 44)
                     .position(center)
 
                 Circle()
-                    .stroke(.gray.opacity(0.3), lineWidth: 2)
-                    .frame(width: size * 0.15, height: size * 0.15)
+                    .stroke(t.line, lineWidth: 0.5)
+                    .frame(width: 44, height: 44)
+                    .position(center)
+
+                // Center accent dot
+                Circle()
+                    .fill(t.accent)
+                    .frame(width: 12, height: 12)
                     .position(center)
             }
         }
@@ -382,4 +519,3 @@ struct SpinWheelView: View {
     ContentView()
         .environment(AppData.sample())
 }
-

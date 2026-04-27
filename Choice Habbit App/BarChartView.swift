@@ -1,15 +1,11 @@
-//
-//  BarChartView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 26.04.26.
-//
-
 import SwiftUI
 import Charts
 
 struct BarChartView: View {
     let data: [(action: String, minutes: Double)]
+
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
         Chart(data, id: \.action) { item in
@@ -17,12 +13,12 @@ struct BarChartView: View {
                 x: .value("Action", item.action),
                 y: .value("Minutes", item.minutes)
             )
-            .foregroundStyle(Color.teal.gradient)
+            .foregroundStyle(t.accent.gradient)
             .cornerRadius(8)
             .annotation(position: .top) {
                 Text(String(format: "%.1f", item.minutes))
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(t.inkMute)
             }
         }
         .frame(height: 220)

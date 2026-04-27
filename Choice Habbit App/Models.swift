@@ -64,6 +64,18 @@ class AppData {
         self.fileURL = nil
     }
 
+    var currentStreak: Int {
+        let cal = Calendar.current
+        var day = cal.startOfDay(for: Date())
+        var streak = 0
+        while logEntries.contains(where: { cal.startOfDay(for: $0.date) == day }) {
+            streak += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
+            day = prev
+        }
+        return streak
+    }
+
     func wheel(for id: UUID) -> Wheel? {
         wheels.first { $0.id == id }
     }

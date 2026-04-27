@@ -9,6 +9,8 @@ struct ActionTimerView: View {
     @Environment(AppData.self) private var appData
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
 
     @State private var isRunning = false
     @State private var startTime: Date? = nil
@@ -26,8 +28,7 @@ struct ActionTimerView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.07, green: 0.07, blue: 0.12)
-                .ignoresSafeArea()
+            t.bg.ignoresSafeArea()
 
             if showingSuccess, let entry = savedEntry {
                 successView(entry: entry)
@@ -60,41 +61,81 @@ struct ActionTimerView: View {
 
     private var timerView: some View {
         VStack(spacing: 0) {
+            // Close button row
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(t.inkSoft)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+
             Spacer()
 
-            VStack(spacing: 12) {
-                Text("Your new choice")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.5))
+            // Centered text block
+            VStack(spacing: 8) {
+                Eyebrow(text: "YOUR NEW CHOICE", color: t.inkMute)
 
                 Text(action)
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .foregroundStyle(t.ink)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
 
             Spacer()
 
+            // Breathing rings
             ZStack {
+                // Outer ring - breathing
                 Circle()
-                    .stroke(Color.teal.opacity(0.15), lineWidth: 2)
-                    .frame(width: 240, height: 240)
+                    .stroke(t.line, lineWidth: 1)
+                    .frame(width: 260, height: 260)
+                    .opacity(isRunning ? 0.7 : 0.7)
+                    .modifier(BreathingModifier(
+                        isActive: isRunning,
+                        delay: 0
+                    ))
 
+                // Middle ring - breathing with delay
                 Circle()
-                    .stroke(
-                        isRunning ? Color.teal.opacity(0.4) : Color.white.opacity(0.1),
-                        lineWidth: 1.5
+                    .stroke(t.accentSoft, lineWidth: 1)
+                    .frame(width: 220, height: 220)
+                    .opacity(isRunning ? 0.6 : 0.6)
+                    .modifier(BreathingModifier(
+                        isActive: isRunning,
+                        delay: 0.6
+                    ))
+
+                // Inner glow
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                t.accent.opacity(0.13),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 90
+                        )
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 180, height: 180)
 
+                // Timer text
                 Text(timeString)
-                    .font(.system(size: 52, weight: .thin, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 44, weight: .thin, design: .monospaced))
+                    .tracking(0.02 * 44)
+                    .foregroundStyle(t.ink)
             }
+            .frame(height: 280)
 
             Spacer()
 
+            // Sub-line and buttons
             VStack(spacing: 16) {
                 if !isRunning {
                     Button {
@@ -104,32 +145,33 @@ struct ActionTimerView: View {
                             .font(.title3.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.teal)
-                            .foregroundStyle(.white)
+                            .background(t.accent)
+                            .foregroundStyle(t.accentInk)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .padding(.horizontal, 32)
                 } else {
+                    Text("Put the phone down. Do the thing.")
+                        .font(.system(size: 13))
+                        .italic()
+                        .foregroundStyle(t.inkMute)
+
                     Button {
                         stopAndLog()
                     } label: {
-                        Label("Stop & Log Success", systemImage: "stop.fill")
+                        Label("Stop & log", systemImage: "stop.fill")
                             .font(.title3.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.white.opacity(0.15))
-                            .foregroundStyle(.white)
+                            .background(Color.clear)
+                            .foregroundStyle(t.ink)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .stroke(Color.teal.opacity(0.6), lineWidth: 1)
+                                    .stroke(t.line, lineWidth: 1)
                             )
                     }
                     .padding(.horizontal, 32)
-
-                    Text("Put your phone down and do the thing.")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
 
@@ -144,46 +186,58 @@ struct ActionTimerView: View {
         VStack(spacing: 32) {
             Spacer()
 
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.teal)
+            // Checkmark with static halo ring
+            ZStack {
+                Circle()
+                    .stroke(t.accentSoft.opacity(0.4), lineWidth: 1)
+                    .frame(width: 140, height: 140)
+
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 72))
+                    .foregroundStyle(t.accent)
+            }
 
             VStack(spacing: 12) {
                 Text("Well done.")
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(t.ink)
 
                 Text("You spent \(formattedMinutes(entry.minutesSpent)) doing:")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(t.inkSoft)
 
                 Text(entry.newAction)
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(t.accent)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
 
+            // Stats card
             VStack(spacing: 8) {
                 Text("Total Productive Good Habit Minutes")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(t.inkMute)
                     .multilineTextAlignment(.center)
 
                 Text(formattedMinutes(totalMinutes))
                     .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(t.ink)
 
                 Text("saved by not: \(entry.oldHabit)")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(t.inkMute)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.07))
+                    .fill(t.surfaceAlt)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(t.line, lineWidth: 1)
+                    )
             )
             .padding(.horizontal, 32)
 
@@ -196,8 +250,8 @@ struct ActionTimerView: View {
                     .font(.title3.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.teal)
-                    .foregroundStyle(.white)
+                    .background(t.accent)
+                    .foregroundStyle(t.accentInk)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .padding(.horizontal, 32)
@@ -319,6 +373,36 @@ struct ActionTimerView: View {
             let mins  = Int(minutes.truncatingRemainder(dividingBy: 60))
             return "\(hours)h \(mins)m"
         }
+    }
+}
+
+// MARK: - Breathing Animation Modifier
+
+private struct BreathingModifier: ViewModifier {
+    let isActive: Bool
+    let delay: Double
+
+    @State private var animating = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isActive && animating ? 1.05 : 1.0)
+            .opacity(isActive && animating ? 0.9 : 0.7)
+            .animation(
+                isActive
+                ? Animation.easeInOut(duration: 6.0)
+                    .repeatForever(autoreverses: true)
+                    .delay(delay)
+                : .default,
+                value: animating
+            )
+            .onChange(of: isActive) { _, running in
+                if running {
+                    animating = true
+                } else {
+                    animating = false
+                }
+            }
     }
 }
 

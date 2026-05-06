@@ -309,17 +309,6 @@ struct ActionTimerView: View {
         appData.logEntries.reduce(0) { $0 + $1.minutesSpent }
     }
 
-    private func formattedMinutes(_ minutes: Double) -> String {
-        if minutes < 1 {
-            return "\(Int(minutes * 60)) seconds"
-        } else if minutes < 60 {
-            return String(format: "%.1f mins", minutes)
-        } else {
-            let hours = Int(minutes / 60)
-            let mins  = Int(minutes.truncatingRemainder(dividingBy: 60))
-            return "\(hours)h \(mins)m"
-        }
-    }
 }
 
 #Preview {

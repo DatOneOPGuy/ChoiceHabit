@@ -13,25 +13,21 @@ struct Choice_Habbit_AppApp: App {
         ThemeChoice(rawValue: themeChoice)?.colorScheme
     }
 
+    private var showOnboarding: Bool {
+        !onboardingCompleted
+    }
+
+    private var showBreathing: Bool {
+        onboardingCompleted && !hasCompletedBreathing
+    }
+
     var body: some Scene {
         WindowGroup {
-            Group {
-                if !onboardingCompleted {
-                    OnboardingView(appData: appData) {
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            onboardingCompleted = true
-                        }
-                    }
-                } else if hasCompletedBreathing {
-                    ContentView()
-                        .transition(.opacity)
-                        .environment(appData)
-                        .onAppear {
-                            UNUserNotificationCenter.current().requestAuthorization(
-                                options: [.alert, .sound, .badge]
-                            ) { _, _ in }
-                        }
-                } else {
+            ZStack {
+                ContentView()
+                    .environment(appData)
+
+                if showBreathing {
                     NavigationStack {
                         SpaceView(trigger: "") {
                             withAnimation(.easeInOut(duration: 0.6)) {
@@ -39,6 +35,18 @@ struct Choice_Habbit_AppApp: App {
                             }
                         }
                     }
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
+
+                if showOnboarding {
+                    OnboardingView(appData: appData) {
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            onboardingCompleted = true
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(2)
                 }
             }
             .preferredColorScheme(resolvedScheme)
@@ -49,11 +57,15 @@ struct Choice_Habbit_AppApp: App {
             }
             .onAppear {
                 migrateExistingUser()
+                if onboardingCompleted {
+                    UNUserNotificationCenter.current().requestAuthorization(
+                        options: [.alert, .sound, .badge]
+                    ) { _, _ in }
+                }
             }
         }
     }
 
-    /// Skip onboarding for users who already have data from before onboarding existed
     private func migrateExistingUser() {
         if !onboardingCompleted && !appData.wheels.isEmpty {
             onboardingCompleted = true

@@ -13,27 +13,30 @@ struct TriggersStepView: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Eyebrow(text: "KNOW YOUR TRIGGERS", color: t.inkMute)
-                TideHeadline(text: "What sets you off?", color: t.ink)
-                Text("When do you usually reach for bad habits?")
-                    .font(.system(size: 14))
-                    .foregroundStyle(t.inkSoft)
-                    .padding(.top, 2)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 60)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Eyebrow(text: "KNOW YOUR TRIGGERS", color: t.inkMute)
+                        TideHeadline(text: "What sets you off?", color: t.ink)
+                        Text("When do you usually reach for bad habits?")
+                            .font(.system(size: 14))
+                            .foregroundStyle(t.inkSoft)
+                            .padding(.top, 2)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 40)
 
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(OnboardingConstants.triggerOptions, id: \.self) { trigger in
-                    chipButton(trigger)
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(OnboardingConstants.triggerOptions, id: \.self) { trigger in
+                            chipButton(trigger)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 120)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-
-            Spacer()
 
             Button(action: onContinue) {
                 Text("Continue")
@@ -50,7 +53,7 @@ struct TriggersStepView: View {
             }
             .disabled(profile.selectedTriggers.isEmpty)
             .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.bottom, 16)
         }
     }
 
@@ -82,4 +85,8 @@ struct TriggersStepView: View {
                 )
         }
     }
+}
+
+#Preview {
+    TriggersStepView(profile: OnboardingProfile()) {}
 }

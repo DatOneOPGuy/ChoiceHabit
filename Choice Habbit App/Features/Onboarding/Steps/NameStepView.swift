@@ -15,7 +15,7 @@ struct NameStepView: View {
                 TideHeadline(text: "What should we\ncall you?", color: t.ink)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 60)
+            .padding(.top, 40)
 
             TextField("Your name", text: Bindable(profile).name)
                 .font(.system(size: 22, weight: .medium))
@@ -53,7 +53,11 @@ struct NameStepView: View {
             }
             .disabled(profile.name.trimmingCharacters(in: .whitespaces).isEmpty)
             .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.bottom, 16)
         }
     }
+}
+
+#Preview {
+    NameStepView(profile: OnboardingProfile()) {}
 }

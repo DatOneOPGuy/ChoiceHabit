@@ -8,27 +8,30 @@ struct FaithDetailStepView: View {
     private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Eyebrow(text: "YOUR FAITH", color: t.inkMute)
-                TideHeadline(text: "Which tradition?", color: t.ink)
-                Text("We'll add faith-specific practices to your wheels.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(t.inkSoft)
-                    .padding(.top, 2)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 60)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Eyebrow(text: "YOUR FAITH", color: t.inkMute)
+                        TideHeadline(text: "Which tradition?", color: t.ink)
+                        Text("We'll add faith-specific practices to your wheels.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(t.inkSoft)
+                            .padding(.top, 2)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 40)
 
-            VStack(spacing: 6) {
-                ForEach(FaithDetail.allCases, id: \.self) { faith in
-                    faithRow(faith)
+                    VStack(spacing: 6) {
+                        ForEach(FaithDetail.allCases, id: \.self) { faith in
+                            faithRow(faith)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 120)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-
-            Spacer()
 
             Button(action: onContinue) {
                 Text("Continue")
@@ -45,7 +48,7 @@ struct FaithDetailStepView: View {
             }
             .disabled(profile.faithDetail == nil)
             .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.bottom, 16)
         }
     }
 
@@ -90,4 +93,12 @@ struct FaithDetailStepView: View {
             )
         }
     }
+}
+
+#Preview {
+    FaithDetailStepView(profile: {
+        let p = OnboardingProfile()
+        p.worldview = .religious
+        return p
+    }()) {}
 }

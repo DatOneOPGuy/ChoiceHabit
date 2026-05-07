@@ -9,56 +9,53 @@ struct ReviewStepView: View {
     private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Eyebrow(text: "YOUR PLAN", color: t.inkMute)
-                    TideHeadline(
-                        text: "Here's what we built\nfor you, \(profile.name).",
-                        color: t.ink
-                    )
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Eyebrow(text: "YOUR PLAN", color: t.inkMute)
+                        TideHeadline(
+                            text: "Here's what we built\nfor you, \(profile.name).",
+                            color: t.ink
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 40)
+
+                    VStack(spacing: 12) {
+                        summaryCard(
+                            icon: "xmark.circle",
+                            title: "Habits to break",
+                            items: Array(profile.selectedBadHabits).sorted()
+                        )
+
+                        summaryCard(
+                            icon: "bolt",
+                            title: "Triggers identified",
+                            items: Array(profile.selectedTriggers).sorted()
+                        )
+
+                        worldviewCard
+
+                        wheelsCard
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 120)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 60)
-
-                VStack(spacing: 12) {
-                    summaryCard(
-                        icon: "xmark.circle",
-                        title: "Habits to break",
-                        items: Array(profile.selectedBadHabits).sorted()
-                    )
-
-                    summaryCard(
-                        icon: "bolt",
-                        title: "Triggers identified",
-                        items: Array(profile.selectedTriggers).sorted()
-                    )
-
-                    worldviewCard
-
-                    wheelsCard
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-
-                Spacer(minLength: 120)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 0) {
-                Button(action: onComplete) {
-                    Text("Looks good — let's go")
-                        .font(.system(size: 17, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(16)
-                        .background(t.accent)
-                        .foregroundStyle(t.accentInk)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+
+            Button(action: onComplete) {
+                Text("Looks good — let's go")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(16)
+                    .background(t.accent)
+                    .foregroundStyle(t.accentInk)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .background(t.bg)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
         }
     }
 
@@ -114,6 +111,12 @@ struct ReviewStepView: View {
                 Text("Personalization")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(t.ink)
+
+                Spacer()
+
+                Text(profile.worldview?.displayName ?? "")
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundStyle(t.inkMute)
             }
 
             Text(worldviewDescription)
@@ -199,4 +202,20 @@ struct ReviewStepView: View {
         default: return "\(trigger) Relief"
         }
     }
+}
+
+#Preview {
+    ReviewStepView(
+        profile: {
+            let p = OnboardingProfile()
+            p.name = "Drake"
+            p.selectedBadHabits = ["Scrolling phone", "Smoking"]
+            p.worldview = .religious
+            p.faithDetail = .christian
+            p.selectedTriggers = ["Boredom", "Stress", "Anxiety"]
+            return p
+        }(),
+        appData: AppData.sample(),
+        onComplete: {}
+    )
 }

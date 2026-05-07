@@ -10,12 +10,20 @@ struct OnboardingView: View {
     @Environment(\.colorScheme) private var colorScheme
     private var t: Tide { .resolve(colorScheme) }
 
-    private var totalSteps: Int {
-        profile.worldview == .religious ? 7 : 6
+    private var steps: [OnboardingStep] {
+        var s: [OnboardingStep] = [
+            .welcome, .name, .badHabits, .worldview
+        ]
+        if profile.worldview == .religious {
+            s.append(.faithDetail)
+        }
+        s.append(contentsOf: [.triggers, .review])
+        return s
     }
 
-    private var showsFaithStep: Bool {
-        profile.worldview == .religious
+    private var currentStepType: OnboardingStep {
+        guard currentStep < steps.count else { return .review }
+        return steps[currentStep]
     }
 
     var body: some View {
@@ -23,77 +31,70 @@ struct OnboardingView: View {
             t.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Step content
+                Spacer(minLength: 0)
+
                 Group {
-                    switch currentStep {
-                    case 0:
+                    switch currentStepType {
+                    case .welcome:
                         WelcomeStepView { advance() }
-                    case 1:
+                    case .name:
                         NameStepView(profile: profile) { advance() }
-                    case 2:
+                    case .badHabits:
                         BadHabitsStepView(profile: profile) { advance() }
-                    case 3:
+                    case .worldview:
                         WorldviewStepView(profile: profile) { advance() }
-                    case 4 where showsFaithStep:
+                    case .faithDetail:
                         FaithDetailStepView(profile: profile) { advance() }
-                    case 4 where !showsFaithStep:
+                    case .triggers:
                         TriggersStepView(profile: profile) { advance() }
-                    case 5 where showsFaithStep:
-                        TriggersStepView(profile: profile) { advance() }
-                    case 5 where !showsFaithStep:
+                    case .review:
                         ReviewStepView(
                             profile: profile,
                             appData: appData,
                             onComplete: finishOnboarding
                         )
-                    case 6:
-                        ReviewStepView(
-                            profile: profile,
-                            appData: appData,
-                            onComplete: finishOnboarding
-                        )
-                    default:
-                        EmptyView()
                     }
                 }
-                .animation(.easeInOut(duration: 0.3), value: currentStep)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
+                .id(currentStepType)
 
                 Spacer(minLength: 0)
 
-                // Progress dots
                 if currentStep > 0 {
                     progressDots
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.35), value: currentStepType)
     }
 
     // MARK: - Progress Dots
 
     private var progressDots: some View {
         HStack(spacing: 8) {
-            ForEach(0..<totalSteps, id: \.self) { idx in
+            ForEach(0..<steps.count, id: \.self) { idx in
                 RoundedRectangle(cornerRadius: 3)
                     .fill(idx == currentStep ? t.accent : t.line)
                     .frame(
                         width: idx == currentStep ? 24 : 6,
                         height: 6
                     )
-                    .animation(.easeInOut(duration: 0.3), value: currentStep)
             }
         }
         .padding(.bottom, 24)
+        .animation(.easeInOut(duration: 0.3), value: currentStep)
     }
 
     // MARK: - Navigation
 
     private func advance() {
-        withAnimation { currentStep += 1 }
-    }
-
-    func goBack() {
-        guard currentStep > 0 else { return }
-        withAnimation { currentStep -= 1 }
+        withAnimation(.easeInOut(duration: 0.35)) {
+            currentStep += 1
+        }
     }
 
     private func finishOnboarding() {
@@ -110,4 +111,14 @@ struct OnboardingView: View {
         WheelBuilder.populate(appData, profile: profile)
         onComplete()
     }
+}
+
+// MARK: - Step Enum
+
+enum OnboardingStep: Hashable {
+    case welcome, name, badHabits, worldview, faithDetail, triggers, review
+}
+
+#Preview {
+    OnboardingView(appData: AppData.sample()) {}
 }

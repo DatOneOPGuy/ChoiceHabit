@@ -8,27 +8,30 @@ struct WorldviewStepView: View {
     private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Eyebrow(text: "YOUR WORLDVIEW", color: t.inkMute)
-                TideHeadline(text: "How do you see\nthe world?", color: t.ink)
-                Text("This helps us personalize your alternatives.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(t.inkSoft)
-                    .padding(.top, 2)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 60)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Eyebrow(text: "YOUR WORLDVIEW", color: t.inkMute)
+                        TideHeadline(text: "How do you see\nthe world?", color: t.ink)
+                        Text("This helps us personalize your alternatives.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(t.inkSoft)
+                            .padding(.top, 2)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 40)
 
-            VStack(spacing: 10) {
-                ForEach(Worldview.allCases, id: \.self) { option in
-                    worldviewCard(option)
+                    VStack(spacing: 10) {
+                        ForEach(Worldview.allCases, id: \.self) { option in
+                            worldviewCard(option)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 120)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
-
-            Spacer()
 
             Button(action: onContinue) {
                 Text("Continue")
@@ -41,7 +44,7 @@ struct WorldviewStepView: View {
             }
             .disabled(profile.worldview == nil)
             .padding(.horizontal, 24)
-            .padding(.bottom, 40)
+            .padding(.bottom, 16)
         }
     }
 
@@ -57,11 +60,9 @@ struct WorldviewStepView: View {
                     .foregroundStyle(selected ? t.accent : t.inkSoft)
                     .frame(width: 40)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(option.displayName)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(t.ink)
-                }
+                Text(option.displayName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(t.ink)
 
                 Spacer()
 
@@ -91,4 +92,8 @@ struct WorldviewStepView: View {
             )
         }
     }
+}
+
+#Preview {
+    WorldviewStepView(profile: OnboardingProfile()) {}
 }

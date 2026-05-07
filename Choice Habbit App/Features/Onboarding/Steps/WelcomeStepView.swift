@@ -49,3 +49,7 @@ struct WelcomeStepView: View {
         }
     }
 }
+
+#Preview {
+    WelcomeStepView {}
+}

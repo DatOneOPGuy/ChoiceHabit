@@ -61,17 +61,7 @@ struct ActionTimerView: View {
 
     private var timerView: some View {
         VStack(spacing: 0) {
-            // Close button row
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(t.inkSoft)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
+            TopBar(leading: .back) { dismiss() }
 
             Spacer()
 

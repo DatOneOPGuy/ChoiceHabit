@@ -54,18 +54,22 @@ struct SuccessLogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                heroStatCard
-                topChoicesSection
+        VStack(spacing: 0) {
+            TopBar(leading: .menu) {}
 
-                if !appData.logEntries.isEmpty {
-                    chartSection
-                    triggerFrequencySection
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                    heroStatCard
+                    topChoicesSection
+
+                    if !appData.logEntries.isEmpty {
+                        chartSection
+                        triggerFrequencySection
+                    }
                 }
+                .padding(.bottom, 40)
             }
-            .padding(.bottom, 40)
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

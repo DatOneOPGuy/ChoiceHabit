@@ -19,12 +19,16 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                groupedSections
+        VStack(spacing: 0) {
+            TopBar(leading: .menu) {}
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                    groupedSections
+                }
+                .padding(.bottom, 40)
             }
-            .padding(.bottom, 40)
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

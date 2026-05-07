@@ -30,6 +30,9 @@ struct Tide {
     let warm: Color
     let ok: Color
     let slices: [Color]
+    let wheelSlices: [Color]
+    let bar: Color
+    let barInk: Color
 
     static let light = Tide(
         bg: Color(hex: 0xF2EEE6),
@@ -45,7 +48,10 @@ struct Tide {
         warm: Color(hex: 0xC97B4A),
         ok: Color(hex: 0x3D7A6B),
         slices: [0x0E6E6E, 0xC97B4A, 0x6E8E84, 0xA99578,
-                 0x4F7A87, 0x8E6B4E, 0xB89A6E, 0x365A60].map { Color(hex: $0) }
+                 0x4F7A87, 0x8E6B4E, 0xB89A6E, 0x365A60].map { Color(hex: $0) },
+        wheelSlices: [0x0E6E6E, 0x3D8983, 0x1F5556, 0x5BA39C, 0x274D50].map { Color(hex: $0) },
+        bar: Color(hex: 0x0E6E6E),
+        barInk: Color(hex: 0xFBF8F2)
     )
 
     static let dark = Tide(
@@ -62,7 +68,10 @@ struct Tide {
         warm: Color(hex: 0xE0986A),
         ok: Color(hex: 0x79C7B4),
         slices: [0x5BC6BD, 0xE0986A, 0x9BB7A9, 0xC9B488,
-                 0x6FA0AE, 0xB98F6E, 0xD9BD90, 0x3F8A8A].map { Color(hex: $0) }
+                 0x6FA0AE, 0xB98F6E, 0xD9BD90, 0x3F8A8A].map { Color(hex: $0) },
+        wheelSlices: [0x1F4F52, 0x2C7A78, 0x1B3A3D, 0x3D8A82, 0x234548].map { Color(hex: $0) },
+        bar: Color(hex: 0x0A4F4F),
+        barInk: Color(hex: 0xFBF8F2)
     )
 
     static func resolve(_ cs: ColorScheme) -> Tide {
@@ -80,6 +89,45 @@ extension Color {
             blue: Double(hex & 0xFF) / 255,
             opacity: opacity
         )
+    }
+}
+
+// MARK: - TopBar (branded teal header)
+
+struct TopBar: View {
+    enum Leading { case menu, back }
+    let leading: Leading
+    let onLeading: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button(action: onLeading) {
+                Image(systemName: leading == .menu
+                    ? "line.3.horizontal"
+                    : "chevron.left")
+                    .font(.system(size: 20, weight: .medium))
+                    .frame(width: 40, height: 40)
+                    .foregroundStyle(t.barInk)
+            }
+
+            Text("Instead")
+                .font(.system(size: 19, weight: .semibold, design: .rounded))
+                .tracking(-0.4)
+                .foregroundStyle(t.barInk)
+                .padding(.leading, 4)
+
+            Spacer()
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 22)
+        .padding(.bottom, 14)
+        .background(t.bar.ignoresSafeArea(edges: .top))
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(.black.opacity(0.08)).frame(height: 1)
+        }
     }
 }
 

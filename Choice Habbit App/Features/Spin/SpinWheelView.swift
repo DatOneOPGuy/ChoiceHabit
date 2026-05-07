@@ -15,14 +15,16 @@ struct SpinWheelView: View {
             let size = min(geo.size.width, geo.size.height)
             let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
             let radius = size / 2
+            let hubRadius = size * 0.12
 
             ZStack {
+                // Slices
                 ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
                     let start = startAngle(for: index)
                     let sweep = sliceAngle(for: option)
                     let drawStart = Angle.radians(start - .pi / 2)
                     let drawEnd = Angle.radians(start + sweep - .pi / 2)
-                    let color = t.slices[index % t.slices.count]
+                    let color = t.wheelSlices[index % t.wheelSlices.count]
 
                     Path { path in
                         path.move(to: center)
@@ -44,36 +46,60 @@ struct SpinWheelView: View {
                         )
                         path.closeSubpath()
                     }
-                    .stroke(t.surface, lineWidth: 1.5)
+                    .stroke(t.bg, lineWidth: 1.5)
 
+                    // Radial label
                     let mid = start + sweep / 2 - .pi / 2
-                    let labelRadius = radius * 0.65
+                    let labelRadius = radius * 0.62
+                    let midDeg = mid * 180 / .pi
+                    let onLeft = cos(mid) < 0
+                    let textRot = onLeft ? midDeg + 180 : midDeg
 
                     Text(option.label)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.4), radius: 1, x: 0.5, y: 0.5)
-                        .rotationEffect(.radians(mid))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color(hex: 0xFBF8F2).opacity(0.95))
+                        .shadow(color: .black.opacity(0.3), radius: 1, x: 0.5, y: 0.5)
+                        .rotationEffect(.degrees(textRot))
                         .position(
                             x: center.x + labelRadius * cos(mid),
                             y: center.y + labelRadius * sin(mid)
                         )
                 }
 
+                // Outer ring
                 Circle()
-                    .fill(t.surface)
-                    .frame(width: 44, height: 44)
+                    .stroke(
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.08)
+                            : Color.black.opacity(0.06),
+                        lineWidth: 1
+                    )
+                    .frame(width: size, height: size)
+                    .position(center)
+
+                // Center hub
+                Circle()
+                    .fill(t.bg)
+                    .frame(width: hubRadius * 2, height: hubRadius * 2)
                     .position(center)
 
                 Circle()
-                    .stroke(t.line, lineWidth: 0.5)
-                    .frame(width: 44, height: 44)
+                    .stroke(t.line, lineWidth: 1)
+                    .frame(width: hubRadius * 2, height: hubRadius * 2)
                     .position(center)
 
-                Circle()
-                    .fill(t.accent)
-                    .frame(width: 12, height: 12)
-                    .position(center)
+                // "SPIN" text
+                Text("SPIN")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(2.0)
+                    .foregroundStyle(t.inkMute)
+                    .position(x: center.x, y: center.y - 4)
+
+                // Refresh icon
+                Text("↻")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(t.accent)
+                    .position(x: center.x, y: center.y + 11)
             }
         }
         .aspectRatio(1, contentMode: .fit)

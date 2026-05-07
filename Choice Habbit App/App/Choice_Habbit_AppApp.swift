@@ -5,7 +5,12 @@ import UserNotifications
 struct Choice_Habbit_AppApp: App {
     @State private var hasCompletedBreathing = false
     @State private var appData = AppData()
+    @AppStorage("themeChoice") private var themeChoice: String = ThemeChoice.auto.rawValue
     @Environment(\.scenePhase) private var scenePhase
+
+    private var resolvedScheme: ColorScheme? {
+        ThemeChoice(rawValue: themeChoice)?.colorScheme
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -29,6 +34,7 @@ struct Choice_Habbit_AppApp: App {
                     }
                 }
             }
+            .preferredColorScheme(resolvedScheme)
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase != .active {
                     appData.persistAll()

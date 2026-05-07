@@ -2,6 +2,10 @@ import SwiftUI
 
 struct WheelSpinnerView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    private var t: Tide { .resolve(colorScheme) }
+
     let wheelID: UUID
     var trigger: String = ""
     var oldHabit: String = ""
@@ -32,51 +36,35 @@ struct WheelSpinnerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text(currentWheel?.name ?? "Spin the Wheel!")
-                .font(.largeTitle.bold())
-                .animation(.easeInOut, value: currentWheelID)
+        VStack(spacing: 0) {
+            topBar
+            headerSection
 
-            ZStack(alignment: .top) {
-                SpinWheelView(options: currentOptions)
-                    .frame(width: 300, height: 300)
-                    .rotationEffect(.radians(rotation))
-                    .animation(
-                        animateRotation
-                            ? .timingCurve(0.12, 0.7, 0.2, 1.0, duration: 4.0)
-                            : nil,
-                        value: rotation
-                    )
+            Spacer(minLength: 12)
 
-                Image(systemName: "arrowtriangle.down.fill")
-                    .font(.title)
-                    .foregroundStyle(.black)
-                    .offset(y: -5)
-            }
-            .onTapGesture {
-                spin()
+            wheelSection
+
+            if result == nil {
+                Text("Tap the wheel to spin")
+                    .font(.system(size: 13))
+                    .foregroundStyle(t.inkMute)
+                    .padding(.top, 8)
             }
 
             if let result {
                 Text(result)
                     .font(.title2.bold())
-                    .foregroundStyle(isFinalResult ? .teal : .primary)
+                    .foregroundStyle(t.accent)
                     .transition(.scale.combined(with: .opacity))
+                    .padding(.top, 12)
             }
 
             Spacer()
+
+            footerCard
         }
-        .padding()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingEditor = true
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                }
-                .disabled(isSpinning)
-            }
-        }
+        .background(t.bg.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showingEditor, onDismiss: {
             appData.persistWheels()
         }) {
@@ -91,6 +79,126 @@ struct WheelSpinnerView: View {
         }
     }
 
+    // MARK: - Top Bar
+
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(t.ink)
+            }
+
+            Spacer()
+
+            Button { showingEditor = true } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(t.ink)
+            }
+            .disabled(isSpinning)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Header
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if !trigger.isEmpty {
+                Eyebrow(
+                    text: "\(trigger) \u{00B7} INSTEAD OF \(oldHabit)",
+                    color: t.inkMute
+                )
+            }
+
+            TideHeadline(
+                text: currentWheel?.name ?? "Spin the Wheel!",
+                color: t.ink
+            )
+            .animation(.easeInOut, value: currentWheelID)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Wheel
+
+    private var wheelSection: some View {
+        ZStack(alignment: .top) {
+            Circle()
+                .fill(t.surfaceAlt.opacity(0.5))
+                .frame(width: 280, height: 280)
+
+            SpinWheelView(options: currentOptions)
+                .frame(width: 260, height: 260)
+                .rotationEffect(.radians(rotation))
+                .animation(
+                    animateRotation
+                        ? .timingCurve(0.12, 0.7, 0.2, 1.0, duration: 4.0)
+                        : nil,
+                    value: rotation
+                )
+                .shadow(
+                    color: colorScheme == .dark
+                        ? Color(red: 0, green: 0, blue: 0, opacity: 0.4)
+                        : Color(red: 15/255, green: 42/255, blue: 46/255, opacity: 0.12),
+                    radius: 12, x: 0, y: 4
+                )
+
+            Image(systemName: "arrowtriangle.down.fill")
+                .font(.title2)
+                .foregroundStyle(t.ink)
+                .offset(y: -5)
+        }
+        .frame(width: 280, height: 290)
+        .onTapGesture {
+            spin()
+        }
+    }
+
+    // MARK: - Footer Card
+
+    private var footerCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(t.accent)
+                    .frame(width: 32, height: 32)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Eyebrow(
+                    text: "\(currentOptions.count) PATHS \u{00B7} WEIGHTED BY WHAT WORKS",
+                    color: t.inkMute
+                )
+                Text("Let the wheel decide for you.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(t.inkSoft)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(t.surfaceAlt)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(t.line, lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+    }
+
+    // MARK: - Spin Logic
+
     private func spin() {
         guard !isSpinning else { return }
         let options = currentOptions
@@ -102,7 +210,6 @@ struct WheelSpinnerView: View {
         let totalWeight = options.reduce(0.0) { $0 + Double($1.weight) }
         guard totalWeight > 0 else { return }
 
-        // Weighted random selection
         let random = Double.random(in: 0..<totalWeight)
         var cumulative = 0.0
         var selectedIndex = 0
@@ -114,7 +221,6 @@ struct WheelSpinnerView: View {
             }
         }
 
-        // Midpoint angle of the selected slice
         var midAngle = 0.0
         for i in 0..<selectedIndex {
             midAngle += (Double(options[i].weight) / totalWeight) * 2 * .pi
@@ -146,7 +252,6 @@ struct WheelSpinnerView: View {
 
             if let childID = selectedOption.childWheelID,
                appData.wheel(for: childID) != nil {
-                // Chain: show result briefly, then load child wheel
                 try? await Task.sleep(for: .seconds(1.5))
 
                 animateRotation = false
@@ -155,7 +260,6 @@ struct WheelSpinnerView: View {
                 result = nil
                 isSpinning = false
 
-                // Auto-spin the child wheel after a brief pause
                 try? await Task.sleep(for: .seconds(0.6))
                 spin()
             } else {
@@ -164,7 +268,6 @@ struct WheelSpinnerView: View {
                 }
                 isSpinning = false
 
-                // Navigate to action timer after showing final result
                 try? await Task.sleep(for: .seconds(1.5))
                 finalAction = selectedOption.label
                 navigateToTimer = true

@@ -2,7 +2,10 @@ import SwiftUI
 
 struct WeightEditorView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    private var t: Tide { .resolve(colorScheme) }
+
     let wheelID: UUID
 
     private var wheelIndex: Int? {
@@ -17,7 +20,7 @@ struct WeightEditorView: View {
                     ForEach(Array(appData.wheels[index].options.enumerated()), id: \.element.id) { optIndex, option in
                         HStack {
                             Circle()
-                                .fill(sliceColors[optIndex % sliceColors.count])
+                                .fill(t.slices[optIndex % t.slices.count])
                                 .frame(width: 12, height: 12)
 
                             Text(option.label)

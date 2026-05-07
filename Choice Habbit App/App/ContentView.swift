@@ -2,18 +2,27 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppData.self) private var appData
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
         TabView {
-            TriggerListView()
-                .tabItem { Label("Spin", systemImage: "arrow.triangle.2.circlepath") }
+            NavigationStack {
+                TriggerListView()
+            }
+            .tabItem { Label("Spin", systemImage: "arrow.triangle.2.circlepath") }
 
-            SuccessLogView()
-                .tabItem { Label("Log", systemImage: "chart.bar") }
+            NavigationStack {
+                SuccessLogView()
+            }
+            .tabItem { Label("Log", systemImage: "chart.bar") }
 
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
+            NavigationStack {
+                SettingsView()
+            }
+            .tabItem { Label("Settings", systemImage: "gearshape") }
         }
+        .tint(t.accent)
     }
 }
 

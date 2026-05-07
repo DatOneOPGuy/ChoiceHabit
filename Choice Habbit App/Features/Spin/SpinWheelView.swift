@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct SpinWheelView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
+
     let options: [WheelOption]
 
     private var totalWeight: Double {
@@ -19,7 +22,7 @@ struct SpinWheelView: View {
                     let sweep = sliceAngle(for: option)
                     let drawStart = Angle.radians(start - .pi / 2)
                     let drawEnd = Angle.radians(start + sweep - .pi / 2)
-                    let color = sliceColors[index % sliceColors.count]
+                    let color = t.slices[index % t.slices.count]
 
                     Path { path in
                         path.move(to: center)
@@ -41,15 +44,15 @@ struct SpinWheelView: View {
                         )
                         path.closeSubpath()
                     }
-                    .stroke(.white, lineWidth: 2)
+                    .stroke(t.surface, lineWidth: 1.5)
 
                     let mid = start + sweep / 2 - .pi / 2
                     let labelRadius = radius * 0.65
 
                     Text(option.label)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 1, x: 1, y: 1)
+                        .shadow(color: .black.opacity(0.4), radius: 1, x: 0.5, y: 0.5)
                         .rotationEffect(.radians(mid))
                         .position(
                             x: center.x + labelRadius * cos(mid),
@@ -58,13 +61,18 @@ struct SpinWheelView: View {
                 }
 
                 Circle()
-                    .fill(.white)
-                    .frame(width: size * 0.15, height: size * 0.15)
+                    .fill(t.surface)
+                    .frame(width: 44, height: 44)
                     .position(center)
 
                 Circle()
-                    .stroke(.gray.opacity(0.3), lineWidth: 2)
-                    .frame(width: size * 0.15, height: size * 0.15)
+                    .stroke(t.line, lineWidth: 0.5)
+                    .frame(width: 44, height: 44)
+                    .position(center)
+
+                Circle()
+                    .fill(t.accent)
+                    .frame(width: 12, height: 12)
                     .position(center)
             }
         }

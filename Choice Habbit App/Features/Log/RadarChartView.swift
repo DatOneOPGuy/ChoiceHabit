@@ -1,14 +1,10 @@
-//
-//  RadarChartView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 26.04.26.
-//
-
 import SwiftUI
 
 struct RadarChartView: View {
     let data: [(action: String, minutes: Double)]
+
+    @Environment(\.colorScheme) private var colorScheme
+    private var t: Tide { .resolve(colorScheme) }
 
     private var maxMinutes: Double {
         data.map { $0.minutes }.max() ?? 1
@@ -24,7 +20,7 @@ struct RadarChartView: View {
         if normalizedData.count < 3 {
             Text("Complete at least 3 different actions to see the radar chart.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(t.inkMute)
                 .multilineTextAlignment(.center)
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -43,7 +39,7 @@ struct RadarChartView: View {
                         else { ringPath.addLine(to: point) }
                     }
                     ringPath.closeSubpath()
-                    context.stroke(ringPath, with: .color(.primary.opacity(0.1)), lineWidth: 1)
+                    context.stroke(ringPath, with: .color(.primary.opacity(0.08)), lineWidth: 1)
                 }
 
                 for i in 0..<count {
@@ -52,7 +48,7 @@ struct RadarChartView: View {
                     var spoke = Path()
                     spoke.move(to: center)
                     spoke.addLine(to: outer)
-                    context.stroke(spoke, with: .color(.primary.opacity(0.15)), lineWidth: 1)
+                    context.stroke(spoke, with: .color(.primary.opacity(0.1)), lineWidth: 1)
                 }
 
                 var dataPath = Path()
@@ -63,15 +59,24 @@ struct RadarChartView: View {
                     else { dataPath.addLine(to: point) }
                 }
                 dataPath.closeSubpath()
-                context.fill(dataPath, with: .color(Color.teal.opacity(0.3)))
-                context.stroke(dataPath, with: .color(Color.teal), lineWidth: 2)
+
+                let accentColor = colorScheme == .dark
+                    ? Color(hex: 0x5BC6BD)
+                    : Color(hex: 0x0E6E6E)
+
+                context.fill(dataPath, with: .color(accentColor.opacity(0.25)))
+                context.stroke(dataPath, with: .color(accentColor), lineWidth: 2)
 
                 for (i, item) in normalizedData.enumerated() {
                     let angle = angleFor(index: i, count: count)
                     let point = pointOn(center: center, angle: angle, radius: radius * item.value)
                     let dotRect = CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)
-                    context.fill(Path(ellipseIn: dotRect), with: .color(Color.teal))
+                    context.fill(Path(ellipseIn: dotRect), with: .color(accentColor))
                 }
+
+                let labelColor = colorScheme == .dark
+                    ? Color(hex: 0x7A8A8C)
+                    : Color(hex: 0x7A8A8C)
 
                 for (i, item) in normalizedData.enumerated() {
                     let angle = angleFor(index: i, count: count)
@@ -79,7 +84,7 @@ struct RadarChartView: View {
                     context.draw(
                         Text(item.action)
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary),
+                            .foregroundColor(labelColor),
                         at: labelPoint
                     )
                 }

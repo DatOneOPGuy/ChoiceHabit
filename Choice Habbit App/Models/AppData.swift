@@ -21,9 +21,6 @@ class AppData {
     init() {
         self.fileURL = Self.defaultFileURL
         loadAll()
-        if wheels.isEmpty && habitPairs.isEmpty {
-            seedSampleData()
-        }
     }
 
     private init(preview: Bool) {
@@ -104,10 +101,13 @@ class AppData {
     func persistLogEntries() { persistAll() }
     func persistBadHabits() { persistAll() }
 
-    // MARK: - Seed sample data on first launch
+    // MARK: - Clear all data (for re-onboarding)
 
-    private func seedSampleData() {
-        SampleData.populate(self)
+    func clearAll() {
+        wheels = []
+        habitPairs = []
+        badHabits = []
+        logEntries = []
         persistAll()
     }
 

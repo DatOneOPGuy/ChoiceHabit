@@ -6,7 +6,12 @@ struct SettingsView: View {
     @AppStorage("themeChoice") private var themeChoice: String = ThemeChoice.auto.rawValue
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("soundsEnabled") private var soundsEnabled = true
+    @AppStorage("userName") private var userName = ""
+    @AppStorage("worldview") private var worldviewRaw = ""
+    @AppStorage("onboardingCompleted") private var onboardingCompleted = true
     private var t: Tide { .resolve(colorScheme) }
+
+    @State private var showingRedoAlert = false
 
     private var wheelCount: Int { appData.wheels.count }
 
@@ -64,6 +69,11 @@ struct SettingsView: View {
 
     private var groupedSections: some View {
         VStack(spacing: 0) {
+            if !userName.isEmpty {
+                settingsGroup(title: "PROFILE") {
+                    profileRows
+                }
+            }
             settingsGroup(title: "PRACTICE") {
                 practiceRows
             }
@@ -76,6 +86,31 @@ struct SettingsView: View {
         }
         .padding(.top, 10)
         .padding(.horizontal, 16)
+        .alert("Redo Onboarding?", isPresented: $showingRedoAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset & Redo", role: .destructive) {
+                appData.clearAll()
+                userName = ""
+                worldviewRaw = ""
+                UserDefaults.standard.removeObject(forKey: "faithDetail")
+                onboardingCompleted = false
+            }
+        } message: {
+            Text("This will clear your wheels, triggers, and bad habits. Your session history will also be cleared.")
+        }
+    }
+
+    // MARK: - Profile Rows
+
+    @ViewBuilder
+    private var profileRows: some View {
+        let worldviewName = Worldview(rawValue: worldviewRaw)?.displayName ?? ""
+
+        settingsRowContent(
+            icon: "person",
+            label: userName,
+            sub: worldviewName.isEmpty ? "Tap to redo onboarding" : worldviewName
+        )
     }
 
     // MARK: - Practice Rows
@@ -107,6 +142,16 @@ struct SettingsView: View {
                 icon: "xmark.circle",
                 label: "Bad habits",
                 sub: "\(appData.badHabits.count) to replace"
+            )
+        }
+
+        Divider().overlay(t.line)
+
+        Button { showingRedoAlert = true } label: {
+            settingsRowContent(
+                icon: "arrow.counterclockwise",
+                label: "Redo onboarding",
+                sub: "Reset your profile and wheels"
             )
         }
     }

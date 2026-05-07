@@ -3,6 +3,7 @@ import SwiftUI
 struct TriggerListView: View {
     @Environment(AppData.self) private var appData
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("userName") private var userName = ""
     private var t: Tide { .resolve(colorScheme) }
 
     var body: some View {
@@ -13,7 +14,9 @@ struct TriggerListView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 6) {
                         TideHeadline(
-                            text: "What do you\nfeel right now?",
+                            text: userName.isEmpty
+                                ? "What do you\nfeel right now?"
+                                : "What do you feel\nright now, \(userName)?",
                             color: t.ink
                         )
                         .lineSpacing(-2)

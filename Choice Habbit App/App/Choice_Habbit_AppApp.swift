@@ -6,6 +6,7 @@ struct Choice_Habbit_AppApp: App {
     @State private var hasCompletedBreathing = false
     @State private var appData = AppData()
     @AppStorage("themeChoice") private var themeChoice: String = ThemeChoice.auto.rawValue
+    @AppStorage("onboardingCompleted") private var onboardingCompleted = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var resolvedScheme: ColorScheme? {
@@ -15,7 +16,13 @@ struct Choice_Habbit_AppApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasCompletedBreathing {
+                if !onboardingCompleted {
+                    OnboardingView(appData: appData) {
+                        withAnimation(.easeInOut(duration: 0.6)) {
+                            onboardingCompleted = true
+                        }
+                    }
+                } else if hasCompletedBreathing {
                     ContentView()
                         .transition(.opacity)
                         .environment(appData)
@@ -40,6 +47,16 @@ struct Choice_Habbit_AppApp: App {
                     appData.persistAll()
                 }
             }
+            .onAppear {
+                migrateExistingUser()
+            }
+        }
+    }
+
+    /// Skip onboarding for users who already have data from before onboarding existed
+    private func migrateExistingUser() {
+        if !onboardingCompleted && !appData.wheels.isEmpty {
+            onboardingCompleted = true
         }
     }
 }

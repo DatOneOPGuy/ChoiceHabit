@@ -36,7 +36,8 @@ struct ActionTimerView: View {
                 timerView
             }
         }
-        .navigationBarBackButtonHidden(isRunning)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onDisappear {
             stopTimer()
             clearAllNotifications()

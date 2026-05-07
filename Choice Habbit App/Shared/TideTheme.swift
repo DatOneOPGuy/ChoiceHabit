@@ -122,8 +122,8 @@ struct TopBar: View {
             Spacer()
         }
         .padding(.horizontal, 8)
-        .padding(.top, 22)
-        .padding(.bottom, 14)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
         .background(t.bar.ignoresSafeArea(edges: .top))
         .overlay(alignment: .bottom) {
             Rectangle().fill(.black.opacity(0.08)).frame(height: 1)

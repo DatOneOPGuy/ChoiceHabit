@@ -54,23 +54,11 @@ struct SuccessLogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                heroStatCard
-                topChoicesSection
+        VStack(spacing: 0) {
+            TopBar(leading: .menu) {}
 
-                if !appData.logEntries.isEmpty {
-                    chartSection
-                    triggerFrequencySection
-                }
-            }
-            .padding(.bottom, 40)
-        }
-        .background(t.bg.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-        .overlay {
             if appData.logEntries.isEmpty {
+                Spacer()
                 ContentUnavailableView(
                     "No Sessions Yet",
                     systemImage: "checkmark.seal",
@@ -78,8 +66,22 @@ struct SuccessLogView: View {
                         "Complete your first intervention to see progress."
                     )
                 )
+                Spacer()
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        header
+                        heroStatCard
+                        topChoicesSection
+                        chartSection
+                        triggerFrequencySection
+                    }
+                    .padding(.bottom, 40)
+                }
             }
         }
+        .background(t.bg.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     // MARK: - Header

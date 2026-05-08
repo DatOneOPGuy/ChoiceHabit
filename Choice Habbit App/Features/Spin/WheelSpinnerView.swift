@@ -37,31 +37,50 @@ struct WheelSpinnerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topBar
-            headerSection
+            TopBar(leading: .back) { dismiss() }
 
-            Spacer(minLength: 12)
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Title section
+                    VStack(alignment: .leading, spacing: 6) {
+                        TideHeadline(
+                            text: "Spin for a better choice",
+                            color: t.ink
+                        )
 
-            wheelSection
+                        Text("Heavier slices come up more often.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(t.inkMute)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
 
-            if result == nil {
-                Text("Tap the wheel to spin")
-                    .font(.system(size: 13))
-                    .foregroundStyle(t.inkMute)
-                    .padding(.top, 8)
+                    Spacer(minLength: 18)
+
+                    // Wheel
+                    wheelSection
+
+                    if result == nil {
+                        Text("Tap the wheel to spin")
+                            .font(.system(size: 13))
+                            .foregroundStyle(t.inkMute)
+                            .padding(.top, 8)
+                    }
+
+                    if let result {
+                        Text(result)
+                            .font(.title2.bold())
+                            .foregroundStyle(t.accent)
+                            .transition(.scale.combined(with: .opacity))
+                            .padding(.top, 12)
+                    }
+
+                    Spacer(minLength: 16)
+
+                    footerCard
+                }
             }
-
-            if let result {
-                Text(result)
-                    .font(.title2.bold())
-                    .foregroundStyle(t.accent)
-                    .transition(.scale.combined(with: .opacity))
-                    .padding(.top, 12)
-            }
-
-            Spacer()
-
-            footerCard
         }
         .background(t.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -79,61 +98,16 @@ struct WheelSpinnerView: View {
         }
     }
 
-    // MARK: - Top Bar
-
-    private var topBar: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(t.ink)
-            }
-
-            Spacer()
-
-            Button { showingEditor = true } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(t.ink)
-            }
-            .disabled(isSpinning)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - Header
-
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if !trigger.isEmpty {
-                Eyebrow(
-                    text: "\(trigger) \u{00B7} INSTEAD OF \(oldHabit)",
-                    color: t.inkMute
-                )
-            }
-
-            TideHeadline(
-                text: currentWheel?.name ?? "Spin the Wheel!",
-                color: t.ink
-            )
-            .animation(.easeInOut, value: currentWheelID)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
-    }
-
     // MARK: - Wheel
 
     private var wheelSection: some View {
         ZStack(alignment: .top) {
             Circle()
                 .fill(t.surfaceAlt.opacity(0.5))
-                .frame(width: 280, height: 280)
+                .frame(width: 320, height: 320)
 
             SpinWheelView(options: currentOptions)
-                .frame(width: 260, height: 260)
+                .frame(width: 300, height: 300)
                 .rotationEffect(.radians(rotation))
                 .animation(
                     animateRotation
@@ -148,12 +122,14 @@ struct WheelSpinnerView: View {
                     radius: 12, x: 0, y: 4
                 )
 
-            Image(systemName: "arrowtriangle.down.fill")
-                .font(.title2)
-                .foregroundStyle(t.ink)
-                .offset(y: -5)
+            // Sienna pointer
+            Triangle()
+                .fill(t.warm)
+                .stroke(t.bg, lineWidth: 1.5)
+                .frame(width: 14, height: 18)
+                .offset(y: -4)
         }
-        .frame(width: 280, height: 290)
+        .frame(width: 320, height: 330)
         .onTapGesture {
             spin()
         }
@@ -272,6 +248,19 @@ struct WheelSpinnerView: View {
                 finalAction = selectedOption.label
                 navigateToTimer = true
             }
+        }
+    }
+}
+
+// MARK: - Triangle Shape (pointer)
+
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { p in
+            p.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            p.closeSubpath()
         }
     }
 }

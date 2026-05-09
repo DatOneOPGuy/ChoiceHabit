@@ -12,6 +12,7 @@ struct SettingsView: View {
     private var t: Tide { .resolve(colorScheme) }
 
     @State private var showingRedoAlert = false
+    @State private var screenTimeManager = ScreenTimeManager()
 
     private var wheelCount: Int { appData.wheels.count }
 
@@ -76,6 +77,9 @@ struct SettingsView: View {
             }
             settingsGroup(title: "PRACTICE") {
                 practiceRows
+            }
+            settingsGroup(title: "SCREEN TIME") {
+                screenTimeRows
             }
             settingsGroup(title: "EXPERIENCE") {
                 experienceRows
@@ -152,6 +156,35 @@ struct SettingsView: View {
                 icon: "arrow.counterclockwise",
                 label: "Redo onboarding",
                 sub: "Reset your profile and wheels"
+            )
+        }
+    }
+
+    // MARK: - Screen Time Rows
+
+    @ViewBuilder
+    private var screenTimeRows: some View {
+        settingsToggleRow(
+            icon: "hourglass",
+            label: "App Monitoring",
+            sub: screenTimeManager.config.isAuthorized
+                ? "Track usage & show reminders"
+                : "Requires Screen Time permission",
+            isOn: Binding(
+                get: { screenTimeManager.config.isMonitoringEnabled },
+                set: { screenTimeManager.toggleMonitoring($0) }
+            )
+        )
+
+        Divider().overlay(t.line)
+
+        NavigationLink {
+            ScreenTimeSettingsView(manager: screenTimeManager)
+        } label: {
+            settingsRowContent(
+                icon: "list.bullet.rectangle",
+                label: "Manage Rules",
+                sub: "\(screenTimeManager.config.rules.count) rules configured"
             )
         }
     }

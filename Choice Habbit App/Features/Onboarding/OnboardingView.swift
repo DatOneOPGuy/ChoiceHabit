@@ -17,7 +17,7 @@ struct OnboardingView: View {
         if profile.worldview == .religious {
             s.append(.faithDetail)
         }
-        s.append(contentsOf: [.triggers, .review])
+        s.append(contentsOf: [.triggers, .screenTime, .review])
         return s
     }
 
@@ -47,6 +47,8 @@ struct OnboardingView: View {
                         FaithDetailStepView(profile: profile) { advance() }
                     case .triggers:
                         TriggersStepView(profile: profile) { advance() }
+                    case .screenTime:
+                        ScreenTimeOnboardingStep(profile: profile) { advance() }
                     case .review:
                         ReviewStepView(
                             profile: profile,
@@ -116,7 +118,7 @@ struct OnboardingView: View {
 // MARK: - Step Enum
 
 enum OnboardingStep: Hashable {
-    case welcome, name, badHabits, worldview, faithDetail, triggers, review
+    case welcome, name, badHabits, worldview, faithDetail, triggers, screenTime, review
 }
 
 #Preview {

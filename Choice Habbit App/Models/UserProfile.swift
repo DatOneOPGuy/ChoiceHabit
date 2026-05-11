@@ -51,6 +51,7 @@ enum FaithDetail: String, Codable, CaseIterable {
 class OnboardingProfile {
     var name = ""
     var selectedBadHabits: Set<String> = []
+    var habitFunctions: [String: HabitFunction] = [:]
     var worldview: Worldview? = nil
     var faithDetail: FaithDetail? = nil
     var selectedTriggers: Set<String> = []

@@ -1,28 +1,56 @@
-//
-//  WheelListView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 26.04.26.
-//
-
 import SwiftUI
 
 struct WheelListView: View {
     @Environment(AppData.self) private var appData
 
+    @State private var systemWheelsExpanded = false
+
+    private var userWheels: [Wheel] { appData.wheels.filter { !$0.isGreyState } }
+    private var systemWheels: [Wheel] { appData.wheels.filter { $0.isGreyState } }
+
     var body: some View {
         List {
-            ForEach(appData.wheels) { wheel in
-                NavigationLink(destination: WheelEditView(wheelID: wheel.id)) {
-                    VStack(alignment: .leading) {
-                        Text(wheel.name)
-                        Text("\(wheel.options.count) options")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            Section {
+                ForEach(userWheels) { wheel in
+                    NavigationLink(destination: WheelEditView(wheelID: wheel.id)) {
+                        VStack(alignment: .leading) {
+                            Text(wheel.name)
+                            Text("\(wheel.options.count) options")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .onDelete(perform: deleteWheels)
             }
-            .onDelete(perform: deleteWheels)
+
+            if !systemWheels.isEmpty {
+                Section(isExpanded: $systemWheelsExpanded) {
+                    ForEach(systemWheels) { wheel in
+                        NavigationLink(destination: WheelEditView(wheelID: wheel.id)) {
+                            VStack(alignment: .leading) {
+                                Text(wheel.name)
+                                Text("\(wheel.options.count) options")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Button {
+                        withAnimation { systemWheelsExpanded.toggle() }
+                    } label: {
+                        HStack {
+                            Text("System Wheels")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .medium))
+                                .rotationEffect(.degrees(systemWheelsExpanded ? 90 : 0))
+                        }
+                    }
+                    .foregroundStyle(.secondary)
+                }
+            }
         }
         .navigationTitle("Wheels")
         .toolbar {
@@ -39,7 +67,7 @@ struct WheelListView: View {
     }
 
     private func deleteWheels(at offsets: IndexSet) {
-        let idsToDelete = offsets.map { appData.wheels[$0].id }
+        let idsToDelete = offsets.map { userWheels[$0].id }
         for id in idsToDelete {
             appData.habitPairs.removeAll { $0.parentWheelID == id }
             for wi in appData.wheels.indices {
@@ -50,7 +78,7 @@ struct WheelListView: View {
                 }
             }
         }
-        appData.wheels.remove(atOffsets: offsets)
+        appData.wheels.removeAll { idsToDelete.contains($0.id) }
         appData.persistAll()
     }
 }

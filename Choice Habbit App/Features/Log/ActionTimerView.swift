@@ -18,12 +18,79 @@ struct ActionTimerView: View {
     @State private var timerTask: Timer? = nil
     @State private var showingSuccess = false
     @State private var savedEntry: LogEntry? = nil
+    @State private var hasShownReframe = false
+    @State private var didntWorkConfirmation = false
 
     private var timeString: String {
         let hours   = elapsedSeconds / 3600
         let minutes = (elapsedSeconds % 3600) / 60
         let seconds = elapsedSeconds % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    private var markerThreshold: Int {
+        switch appData.currentEnergyLevel {
+        case .fine: return 90
+        case .strained: return 60
+        case .empty: return 45
+        }
+    }
+
+    private var ringProgress: Double {
+        guard markerThreshold > 0 else { return 1.0 }
+        return min(1.0, Double(elapsedSeconds) / Double(markerThreshold))
+    }
+
+    private var markerComplete: Bool {
+        elapsedSeconds >= markerThreshold
+    }
+
+    private static let confirmationPhrases = [
+        "That's a redirect. It counts.",
+        "You changed the pattern just now.",
+        "The urge passed. You helped it along.",
+        "Small move. Real shift.",
+        "That's what it looks like.",
+    ]
+
+    @AppStorage("lastPhraseIndices") private var lastPhraseIndicesData: String = ""
+
+    private var confirmationPhrase: String {
+        let used = lastPhraseIndicesData.split(separator: ",").compactMap { Int($0) }
+        let available = (0..<Self.confirmationPhrases.count).filter { !used.contains($0) }
+        let index = available.randomElement() ?? Int.random(in: 0..<Self.confirmationPhrases.count)
+        return Self.confirmationPhrases[index]
+    }
+
+    private func recordPhraseIndex(_ phrase: String) {
+        guard let index = Self.confirmationPhrases.firstIndex(of: phrase) else { return }
+        var used = lastPhraseIndicesData.split(separator: ",").compactMap { Int($0) }
+        used.append(index)
+        if used.count > 4 { used.removeFirst() }
+        lastPhraseIndicesData = used.map(String.init).joined(separator: ",")
+    }
+
+    private func triggerRedirectsThisMonth() -> Int {
+        let cal = Calendar.current
+        let now = Date()
+        return appData.logEntries.filter {
+            $0.trigger == trigger && cal.isDate($0.date, equalTo: now, toGranularity: .month)
+        }.count
+    }
+
+    private func triggerRedirectsLastMonth() -> Int? {
+        let cal = Calendar.current
+        guard let lastMonth = cal.date(byAdding: .month, value: -1, to: Date()) else { return nil }
+        let count = appData.logEntries.filter {
+            $0.trigger == trigger && cal.isDate($0.date, equalTo: lastMonth, toGranularity: .month)
+        }.count
+        return count > 0 ? count : nil
+    }
+
+    private var formattedCollective: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: appData.collectiveRedirectBase)) ?? "\(appData.collectiveRedirectBase)"
     }
 
     var body: some View {
@@ -66,7 +133,6 @@ struct ActionTimerView: View {
 
             Spacer()
 
-            // Centered text block
             VStack(spacing: 8) {
                 Eyebrow(text: "YOUR NEW CHOICE", color: t.inkMute)
 
@@ -77,31 +143,32 @@ struct ActionTimerView: View {
                     .padding(.horizontal, 32)
             }
 
+            if !isRunning && !hasShownReframe {
+                Text("The discomfort at the start is just the chemical lag — it passes quickly.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(t.inkSoft)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 36)
+                    .padding(.top, 12)
+            }
+
             Spacer()
 
-            // Breathing rings
             ZStack {
-                // Outer ring - breathing
                 Circle()
-                    .stroke(t.line, lineWidth: 1)
+                    .stroke(t.line, lineWidth: 3)
                     .frame(width: 260, height: 260)
-                    .opacity(isRunning ? 0.7 : 0.7)
-                    .modifier(BreathingModifier(
-                        isActive: isRunning,
-                        delay: 0
-                    ))
 
-                // Middle ring - breathing with delay
                 Circle()
-                    .stroke(t.accentSoft, lineWidth: 1)
-                    .frame(width: 220, height: 220)
-                    .opacity(isRunning ? 0.6 : 0.6)
-                    .modifier(BreathingModifier(
-                        isActive: isRunning,
-                        delay: 0.6
-                    ))
+                    .trim(from: 0, to: ringProgress)
+                    .stroke(
+                        markerComplete ? t.ok : t.accent,
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: 260, height: 260)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: ringProgress)
 
-                // Inner glow
                 Circle()
                     .fill(
                         RadialGradient(
@@ -116,7 +183,6 @@ struct ActionTimerView: View {
                     )
                     .frame(width: 180, height: 180)
 
-                // Timer text
                 Text(timeString)
                     .font(.system(size: 44, weight: .thin, design: .monospaced))
                     .tracking(0.02 * 44)
@@ -124,15 +190,36 @@ struct ActionTimerView: View {
             }
             .frame(height: 280)
 
+            if isRunning {
+                if markerComplete {
+                    Text("Done — keep going if you want.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(t.inkSoft)
+                        .padding(.top, 4)
+                } else {
+                    Text("Going...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(t.inkSoft)
+                        .padding(.top, 4)
+                }
+
+                if appData.currentEnergyLevel != .fine {
+                    Text("Adjusted for your energy level")
+                        .font(.system(size: 11))
+                        .foregroundStyle(t.inkMute)
+                        .padding(.top, 2)
+                }
+            }
+
             Spacer()
 
-            // Sub-line and buttons
             VStack(spacing: 16) {
                 if !isRunning {
                     Button {
+                        hasShownReframe = true
                         startTimer()
                     } label: {
-                        Label("Start Action Timer", systemImage: "play.fill")
+                        Label("Start", systemImage: "play.fill")
                             .font(.title3.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -174,67 +261,83 @@ struct ActionTimerView: View {
     // MARK: - Success Screen
 
     private func successView(entry: LogEntry) -> some View {
-        VStack(spacing: 32) {
+        let phrase = confirmationPhrase
+
+        return VStack(spacing: 0) {
             Spacer()
 
-            // Checkmark with static halo ring
-            ZStack {
-                Circle()
-                    .stroke(t.accentSoft.opacity(0.4), lineWidth: 1)
-                    .frame(width: 140, height: 140)
-
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(t.accent)
-            }
-
+            // Layer 1 — Behavior anchor
             VStack(spacing: 12) {
-                Text("Well done.")
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(t.ink)
+                ZStack {
+                    Circle()
+                        .stroke(t.ok.opacity(0.4), lineWidth: 1)
+                        .frame(width: 100, height: 100)
 
-                Text("You spent \(formattedMinutes(entry.minutesSpent)) doing:")
-                    .font(.subheadline)
-                    .foregroundStyle(t.inkSoft)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundStyle(t.ok)
+                }
 
-                Text(entry.newAction)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(t.accent)
+                TideHeadline(text: entry.newAction, color: t.ink)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 32)
+
+                Text(phrase)
+                    .font(.system(size: 15))
+                    .foregroundStyle(t.ok)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
 
-            // Stats card
-            VStack(spacing: 8) {
-                Text("Total Productive Good Habit Minutes")
-                    .font(.caption)
-                    .foregroundStyle(t.inkMute)
-                    .multilineTextAlignment(.center)
+            Spacer().frame(height: 32)
 
-                Text(formattedMinutes(totalMinutes))
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(t.ink)
-
-                Text("saved by not: \(entry.oldHabit)")
-                    .font(.caption)
-                    .foregroundStyle(t.inkMute)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+            // Layer 2 — Change velocity
+            VStack(spacing: 4) {
+                let thisMonth = triggerRedirectsThisMonth()
+                let lastMonth = triggerRedirectsLastMonth()
+                if let lastMonth {
+                    Text("This trigger: \(thisMonth) redirect\(thisMonth == 1 ? "" : "s") this month vs. \(lastMonth) last month")
+                        .font(.system(size: 13))
+                        .foregroundStyle(t.inkSoft)
+                        .multilineTextAlignment(.center)
+                } else {
+                    Text("This trigger: \(thisMonth) redirect\(thisMonth == 1 ? "" : "s") this month")
+                        .font(.system(size: 13))
+                        .foregroundStyle(t.inkSoft)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(t.surfaceAlt)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(t.line, lineWidth: 1)
-                    )
-            )
             .padding(.horizontal, 32)
+
+            Spacer().frame(height: 12)
+
+            // Layer 3 — Collective metric
+            Text("\(formattedCollective) redirects logged this week")
+                .font(.system(size: 11))
+                .foregroundStyle(t.inkMute)
+
+            Spacer().frame(height: 16)
+
+            // "Didn't work" feedback
+            if !didntWorkConfirmation {
+                Button {
+                    markDidntWork(action: entry.newAction)
+                } label: {
+                    Text("This one didn't work for me")
+                        .font(.system(size: 11))
+                        .foregroundStyle(t.inkMute)
+                }
+            } else {
+                Text("Got it — you'll see it less.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(t.inkMute)
+                    .transition(.opacity)
+            }
 
             Spacer()
 
             Button {
+                recordPhraseIndex(phrase)
                 dismiss()
             } label: {
                 Text("Done")
@@ -249,6 +352,26 @@ struct ActionTimerView: View {
 
             Spacer()
                 .frame(height: 40)
+        }
+    }
+
+    // MARK: - "Didn't work" feedback
+
+    private func markDidntWork(action: String) {
+        for wi in appData.wheels.indices {
+            for oi in appData.wheels[wi].options.indices {
+                if appData.wheels[wi].options[oi].label == action {
+                    appData.wheels[wi].options[oi].skipCount += 1
+                    appData.persistWheels()
+                }
+            }
+        }
+        withAnimation(.easeOut(duration: 0.3)) {
+            didntWorkConfirmation = true
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { didntWorkConfirmation = false }
         }
     }
 
@@ -287,6 +410,7 @@ struct ActionTimerView: View {
         )
 
         appData.logEntries.append(entry)
+        appData.collectiveRedirectBase += 1
         appData.persistLogEntries()
         savedEntry = entry
 
@@ -347,13 +471,6 @@ struct ActionTimerView: View {
         let s = total % 60
         return String(format: "%02d:%02d:%02d", h, m, s)
     }
-
-    // MARK: - Helpers
-
-    private var totalMinutes: Double {
-        appData.logEntries.reduce(0) { $0 + $1.minutesSpent }
-    }
-
 }
 
 // MARK: - Breathing Animation Modifier

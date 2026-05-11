@@ -1,10 +1,3 @@
-//
-//  OptionEditView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 26.04.26.
-//
-
 import SwiftUI
 
 struct OptionEditView: View {
@@ -40,6 +33,23 @@ struct OptionEditView: View {
                     Text("Higher weight = selected more often")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Feedback") {
+                    let skipCount = appData.wheels[idx.wheel].options[idx.option].skipCount
+                    HStack {
+                        Text("Skipped \(skipCount) time\(skipCount == 1 ? "" : "s")")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if skipCount > 0 {
+                            Button("Reset") {
+                                appData.wheels[idx.wheel].options[idx.option].skipCount = 0
+                                appData.persistWheels()
+                            }
+                            .font(.system(size: 14))
+                        }
+                    }
                 }
 
                 Section("Child Wheel (optional)") {

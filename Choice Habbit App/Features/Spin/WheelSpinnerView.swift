@@ -9,6 +9,7 @@ struct WheelSpinnerView: View {
     let wheelID: UUID
     var trigger: String = ""
     var oldHabit: String = ""
+    var greyStateMode: Bool = false
 
     @State private var currentWheelID: UUID
     @State private var rotation = 0.0
@@ -20,10 +21,11 @@ struct WheelSpinnerView: View {
     @State private var navigateToTimer = false
     @State private var finalAction = ""
 
-    init(wheelID: UUID, trigger: String = "", oldHabit: String = "") {
+    init(wheelID: UUID, trigger: String = "", oldHabit: String = "", greyStateMode: Bool = false) {
         self.wheelID = wheelID
         self.trigger = trigger
         self.oldHabit = oldHabit
+        self.greyStateMode = greyStateMode
         self._currentWheelID = State(initialValue: wheelID)
     }
 
@@ -32,7 +34,7 @@ struct WheelSpinnerView: View {
     }
 
     private var currentOptions: [WheelOption] {
-        currentWheel?.options ?? []
+        currentWheel?.activeOptions ?? []
     }
 
     var body: some View {
@@ -78,7 +80,13 @@ struct WheelSpinnerView: View {
 
                     Spacer(minLength: 16)
 
-                    footerCard
+                    if greyStateMode {
+                        if isFinalResult {
+                            greyStateDoneButton
+                        }
+                    } else {
+                        footerCard
+                    }
                 }
             }
         }
@@ -173,6 +181,20 @@ struct WheelSpinnerView: View {
         .padding(.bottom, 16)
     }
 
+    // MARK: - Grey State Done Button
+
+    private var greyStateDoneButton: some View {
+        Button("Done") { dismiss() }
+            .font(.title3.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(t.accent)
+            .foregroundStyle(t.accentInk)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+    }
+
     // MARK: - Spin Logic
 
     private func spin() {
@@ -226,6 +248,12 @@ struct WheelSpinnerView: View {
                 result = selectedOption.label
             }
 
+            if let wi = appData.wheels.firstIndex(where: { $0.id == currentWheelID }),
+               let oi = appData.wheels[wi].options.firstIndex(where: { $0.id == selectedOption.id }) {
+                appData.wheels[wi].options[oi].lastUsed = Date()
+                appData.persistWheels()
+            }
+
             if let childID = selectedOption.childWheelID,
                appData.wheel(for: childID) != nil {
                 try? await Task.sleep(for: .seconds(1.5))
@@ -244,9 +272,13 @@ struct WheelSpinnerView: View {
                 }
                 isSpinning = false
 
-                try? await Task.sleep(for: .seconds(1.5))
-                finalAction = selectedOption.label
-                navigateToTimer = true
+                if greyStateMode {
+                    // Result label is already shown — that is the entire output
+                } else {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    finalAction = selectedOption.label
+                    navigateToTimer = true
+                }
             }
         }
     }

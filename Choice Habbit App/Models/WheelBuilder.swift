@@ -6,6 +6,14 @@ struct CatalogEntry {
     let label: String
     let weight: Int
     let triggers: Set<String>
+    let functions: [HabitFunction]
+
+    init(label: String, weight: Int, triggers: [String], functions: [HabitFunction] = []) {
+        self.label = label
+        self.weight = weight
+        self.triggers = Set(triggers)
+        self.functions = functions
+    }
 }
 
 // MARK: - WheelBuilder
@@ -17,6 +25,8 @@ enum WheelBuilder {
             worldview: profile.worldview,
             faithDetail: profile.faithDetail
         )
+
+        let userFunctions = Set(profile.habitFunctions.values)
 
         var wheels: [Wheel] = []
         var habitPairs: [HabitPair] = []
@@ -31,8 +41,14 @@ enum WheelBuilder {
                 matched.append(contentsOf: extras.prefix(needed))
             }
 
-            let options = matched.map {
-                WheelOption(label: $0.label, weight: $0.weight)
+            let options = matched.map { entry -> WheelOption in
+                var adjustedWeight = entry.weight
+                if !entry.functions.isEmpty && !userFunctions.isEmpty {
+                    if !Set(entry.functions).isDisjoint(with: userFunctions) {
+                        adjustedWeight = Int(Double(entry.weight) * 1.5)
+                    }
+                }
+                return WheelOption(label: entry.label, weight: min(adjustedWeight, 10))
             }
             let wheel = Wheel(
                 name: wheelName(for: trigger),
@@ -54,7 +70,7 @@ enum WheelBuilder {
         appData.wheels = wheels
         appData.habitPairs = habitPairs
         appData.badHabits = profile.selectedBadHabits.map {
-            BadHabit(name: $0)
+            BadHabit(name: $0, primaryFunction: profile.habitFunctions[$0] ?? .boredom)
         }
         appData.persistAll()
     }

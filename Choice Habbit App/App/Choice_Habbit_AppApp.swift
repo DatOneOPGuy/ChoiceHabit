@@ -3,7 +3,6 @@ import UserNotifications
 
 @main
 struct Choice_Habbit_AppApp: App {
-    @State private var hasCompletedBreathing = false
     @State private var appData = AppData()
     @AppStorage("themeChoice") private var themeChoice: String = ThemeChoice.auto.rawValue
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
@@ -17,27 +16,11 @@ struct Choice_Habbit_AppApp: App {
         !onboardingCompleted
     }
 
-    private var showBreathing: Bool {
-        onboardingCompleted && !hasCompletedBreathing
-    }
-
     var body: some Scene {
         WindowGroup {
             ZStack {
                 ContentView()
                     .environment(appData)
-
-                if showBreathing {
-                    NavigationStack {
-                        SpaceView(trigger: "") {
-                            withAnimation(.easeInOut(duration: 0.6)) {
-                                hasCompletedBreathing = true
-                            }
-                        }
-                    }
-                    .transition(.opacity)
-                    .zIndex(1)
-                }
 
                 if showOnboarding {
                     OnboardingView(appData: appData) {
@@ -54,6 +37,10 @@ struct Choice_Habbit_AppApp: App {
                 if newPhase != .active {
                     appData.persistAll()
                 }
+                if newPhase == .active && !appData.energyInferredThisSession {
+                    appData.currentEnergyLevel = inferEnergyLevel()
+                    appData.energyInferredThisSession = true
+                }
             }
             .onAppear {
                 migrateExistingUser()
@@ -61,6 +48,10 @@ struct Choice_Habbit_AppApp: App {
                     UNUserNotificationCenter.current().requestAuthorization(
                         options: [.alert, .sound, .badge]
                     ) { _, _ in }
+                }
+                if !appData.energyInferredThisSession {
+                    appData.currentEnergyLevel = inferEnergyLevel()
+                    appData.energyInferredThisSession = true
                 }
             }
         }
@@ -70,5 +61,28 @@ struct Choice_Habbit_AppApp: App {
         if !onboardingCompleted && !appData.wheels.isEmpty {
             onboardingCompleted = true
         }
+    }
+
+    private func inferEnergyLevel() -> EnergyLevel {
+        let hour = Calendar.current.component(.hour, from: Date())
+
+        if hour >= 0 && hour < 4 { return .empty }
+
+        let sessionsToday = appData.logEntries.filter {
+            Calendar.current.isDateInToday($0.date)
+        }.count
+        if sessionsToday >= 3 { return .empty }
+
+        let slipsToday = appData.slips.filter {
+            Calendar.current.isDateInToday($0.date)
+        }.count
+        if slipsToday >= 2 { return .strained }
+
+        if let lastLog = appData.logEntries.sorted(by: { $0.date > $1.date }).first {
+            let daysSince = Calendar.current.dateComponents([.day], from: lastLog.date, to: Date()).day ?? 0
+            if daysSince >= 7 { return .strained }
+        }
+
+        return .fine
     }
 }

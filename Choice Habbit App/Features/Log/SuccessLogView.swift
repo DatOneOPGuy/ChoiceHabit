@@ -1,10 +1,3 @@
-//
-//  SuccessLogView.swift
-//  Choice Habbit App
-//
-//  Created by Joey Hansel on 26.04.26.
-//
-
 import SwiftUI
 import Charts
 
@@ -53,6 +46,20 @@ struct SuccessLogView: View {
         }
     }
 
+    private var redirectDaysLast30: Int {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var days = Set<Date>()
+        for entry in appData.logEntries {
+            let entryDay = cal.startOfDay(for: entry.date)
+            if let diff = cal.dateComponents([.day], from: entryDay, to: today).day,
+               diff >= 0 && diff < 30 {
+                days.insert(entryDay)
+            }
+        }
+        return days.count
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             TopBar(leading: .menu) {}
@@ -71,6 +78,7 @@ struct SuccessLogView: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         header
+                        consistencyCard
                         heroStatCard
                         topChoicesSection
                         chartSection
@@ -96,20 +104,43 @@ struct SuccessLogView: View {
         .padding(.horizontal, 24)
     }
 
+    // MARK: - Consistency Card
+
+    private var consistencyCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("You redirected \(redirectDaysLast30) out of the last 30 days you opened the app")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(t.ink)
+
+            Text("Every redirect counts. Slips don't erase them.")
+                .font(.system(size: 13))
+                .foregroundStyle(t.inkSoft)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(t.surfaceAlt)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(t.line, lineWidth: 0.5)
+                )
+        )
+        .padding(.top, 14)
+        .padding(.horizontal, 16)
+    }
+
     // MARK: - Hero Stat Card
 
     private var heroStatCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Big numeral
             Text(formattedMinutes(totalMinutes))
                 .font(.system(size: 56, weight: .semibold, design: .rounded))
                 .tracking(-0.04 * 56)
                 .foregroundStyle(t.accent)
 
-            // Sub-line
             subLine
 
-            // Sparkline
             sparkline
         }
         .padding(22)

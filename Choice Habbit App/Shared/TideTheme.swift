@@ -113,7 +113,7 @@ struct TopBar: View {
                     .foregroundStyle(t.barInk)
             }
 
-            Text("Instead")
+            Text("Nstead")
                 .font(.system(size: 19, weight: .semibold, design: .rounded))
                 .tracking(-0.4)
                 .foregroundStyle(t.barInk)

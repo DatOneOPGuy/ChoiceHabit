@@ -12,7 +12,7 @@ struct OnboardingView: View {
 
     private var steps: [OnboardingStep] {
         var s: [OnboardingStep] = [
-            .welcome, .name, .badHabits, .worldview
+            .welcome, .name, .badHabits, .habitFunction, .worldview
         ]
         if profile.worldview == .religious {
             s.append(.faithDetail)
@@ -41,6 +41,8 @@ struct OnboardingView: View {
                         NameStepView(profile: profile) { advance() }
                     case .badHabits:
                         BadHabitsStepView(profile: profile) { advance() }
+                    case .habitFunction:
+                        HabitFunctionStepView(profile: profile) { advance() }
                     case .worldview:
                         WorldviewStepView(profile: profile) { advance() }
                     case .faithDetail:
@@ -116,7 +118,7 @@ struct OnboardingView: View {
 // MARK: - Step Enum
 
 enum OnboardingStep: Hashable {
-    case welcome, name, badHabits, worldview, faithDetail, triggers, review
+    case welcome, name, badHabits, habitFunction, worldview, faithDetail, triggers, review
 }
 
 #Preview {
